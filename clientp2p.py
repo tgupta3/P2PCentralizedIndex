@@ -6,7 +6,6 @@ import glob
 from clientdef import *
 
 
-
 class serverthread():
 
 	def __init__(self,s):
@@ -45,6 +44,10 @@ class serverthread():
 
 
 
+
+
+
+
 clientname=socket.gethostname()
 clientport=random.randint(49152,65535)
 c=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -54,6 +57,9 @@ serverip='3255-a.local'
 serverport=7734
 
 c.connect((serverip,serverport))
+msg2send="Host: %s\nPort: %s" %(clientname,clientport)
+c.send(msg2send)
+print msg2send
 presentrfc=getrfc()
 
 addtoserver(c,presentrfc,clientname,clientport)
