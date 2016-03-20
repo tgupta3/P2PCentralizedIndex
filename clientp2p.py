@@ -37,6 +37,7 @@ class serverthread():
 			print msg2send
 			self.s.send(msg2send)
 			print self.s.recv(1024)
+			
 
 
 		if(choice=='4'):

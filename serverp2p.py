@@ -62,6 +62,7 @@ class rfclist():
 
 	@staticmethod
 	def removerfc(host,port):
+		print "Removing RFC"
 		delindex=[]
 		for i,r in enumerate(rfcavail):
 			if (r.host==host and r.port==port):
@@ -99,21 +100,58 @@ class threadclient(threading.Thread):
 				if(lines[0].split()[0]=="ADD"):
 					rfcnorecv=lines[0].split()[2]
 					titlerecv=' '.join(lines[3].split()[1:])
-					rfclist.addrfc(rfcnorecv,titlerecv,self.peerhost,self.peerport)		
+					peerlist.addpeer(self.peerhost,self.peerport)
+					rfclist.addrfc(rfcnorecv,titlerecv,self.peerhost,self.peerport)
+					msg2send="P2P-CI/1.0 200 OK\nRFC %s %s %s %s"%(rfcnorecv,titlerecv,self.peerhost,self.peerport)
+					self.connsocket.send(msg2send)		
 								
 
-				if (lines[0].split()[0]=='LIST'):
-					rfclist.displayrfc()
+				elif (lines[0].split()[0]=='LIST'):
+					self.connsocket.send(listmsg())
+	
 				
-				self.connsocket.send(recv)
+				elif (lines[0].split()[0]=='LOOKUP'):
+					rfcnotolookup=lines[0].split()[2]
+					indexrfc=[]
+					for i,r in enumerate(rfcavail):
+						if(r.rfcno==rfcnotolookup):
+							indexrfc.append(i)
+					if not indexrfc:
+						self.connsocket.send("Not found")
+					else:
+						self.connsocket.send(lookupmsg(indexrfc))				
+				
+				else:
+					self.connsocket.send("error")
 				
 			 
 		self.connsocket.close()
-		print "Client- "+str(self.addr[0])+"Closed"
+		print "Client- "+str(self.addr[0])+" Closed"
 		peerlist.removepeer(self.peerhost,self.peerport)
 		rfclist.removerfc(self.peerhost,self.peerport)
 		peerlist.displaypeer()
 		rfclist.displayrfc()
+
+
+def listmsg():
+	global rfcavail
+	basemsg="P2P-CI/1.0 200 OK"
+	msg2send=basemsg
+	for r in rfcavail:
+		msg2send+='\n'
+		msgnxtline="RFC %s %s %s %s"%(r.rfcno,r.title,r.host,r.port)
+		msg2send+=msgnxtline
+	#print len(msg2send.splitlines())
+	return msg2send	
+
+def lookupmsg(indexrfc):
+	global rfcavail
+	msg2send="P2P-CI/1.0 200 OK"
+	for r in indexrfc:
+		msg2send+='\n'
+		msgnxtline="RFC %s %s %s %s"%(rfcavail[r].rfcno,rfcavail[r].title,rfcavail[r].host,rfcavail[r].port)
+		msg2send+=msgnxtline
+	return msg2send
 
 def get_ip_address(ifname):
 	 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
