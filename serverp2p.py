@@ -4,6 +4,7 @@ import struct
 import threading
 import os
 import subprocess
+from time import sleep
 
 
 class peerlist():
@@ -96,41 +97,60 @@ class threadclient(threading.Thread):
 				if not recv: break
 				#print recv
 				lines=recv.splitlines()
+
 				
 				if(lines[0].split()[0]=="ADD"):
-					rfcnorecv=lines[0].split()[2]
-					titlerecv=' '.join(lines[3].split()[1:])
-					peerlist.addpeer(self.peerhost,self.peerport)
-					rfclist.addrfc(rfcnorecv,titlerecv,self.peerhost,self.peerport)
-					msg2send="P2P-CI/1.0 200 OK\nRFC %s %s %s %s"%(rfcnorecv,titlerecv,self.peerhost,self.peerport)
-					self.connsocket.send(msg2send)		
-								
+					if(lines[0].split()[3]=="P2P-CI/1.0"):	
+						rfcnorecv=lines[0].split()[2]
+						titlerecv=' '.join(lines[3].split()[1:])
+						lock.acquire()
+						peerlist.addpeer(self.peerhost,self.peerport)
+						rfclist.addrfc(rfcnorecv,titlerecv,self.peerhost,self.peerport)
+						lock.release()
+						msg2send="P2P-CI/1.0 200 OK\nRFC %s %s %s %s"%(rfcnorecv,titlerecv,self.peerhost,self.peerport)
+						self.connsocket.send(msg2send)		
+					else:
+						self.connsocket.send("P2P-CI/1.0 505 P2P-CI Version Not Supported")			
 
 				elif (lines[0].split()[0]=='LIST'):
-					self.connsocket.send(listmsg())
+					if(lines[0].split()[2]=="P2P-CI/1.0"):	
+						lock.acquire()
+						self.connsocket.send(listmsg())
+						lock.release()
+					else:
+						self.connsocket.send("P2P-CI/1.0 505 P2P-CI Version Not Supported")	
 	
 				
 				elif (lines[0].split()[0]=='LOOKUP'):
-					rfcnotolookup=lines[0].split()[2]
-					indexrfc=[]
-					for i,r in enumerate(rfcavail):
-						if(r.rfcno==rfcnotolookup):
-							indexrfc.append(i)
-					if not indexrfc:
-						self.connsocket.send("Not found")
+					if(lines[0].split()[3]=="P2P-CI/1.0"):	
+						rfcnotolookup=lines[0].split()[2]
+						indexrfc=[]
+						lock.acquire()
+						for i,r in enumerate(rfcavail):
+							if(r.rfcno==rfcnotolookup):
+								indexrfc.append(i)
+						lock.release()
+						if not indexrfc:
+							self.connsocket.send("P2P-CI/1.0 404 Not Found\n")
+						else:
+							lock.acquire()
+							self.connsocket.send(lookupmsg(indexrfc))
+							lock.release()
 					else:
-						self.connsocket.send(lookupmsg(indexrfc))				
+						self.connsocket.send("P2P-CI/1.0 505 P2P-CI Version Not Supported")						
 				
 				else:
-					self.connsocket.send("error")
+					self.connsocket.send("P2P-CI/1.0 400 Bad Request")
 				
 			 
 		self.connsocket.close()
 		print "Client- "+str(self.addr[0])+" Closed"
+		lock.acquire()
 		peerlist.removepeer(self.peerhost,self.peerport)
 		rfclist.removerfc(self.peerhost,self.peerport)
 		peerlist.displaypeer()
 		rfclist.displayrfc()
+		lock.release()
 
 
 def listmsg():
@@ -165,6 +185,7 @@ port=7734
 os.system('fuser -k 7734/tcp')
 activepeers=[]
 rfcavail=[]
+lock=threading.Lock()
 
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
