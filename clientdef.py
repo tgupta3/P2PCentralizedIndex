@@ -4,6 +4,7 @@ import sys
 import os
 import glob
 import re
+import platform
 
 
 def getrfc():
@@ -43,3 +44,23 @@ def lookuptitle(rfcno):
 				index2=line.find('.')
 				index1=line.find(" ")
 				return line[index1+1:index2]
+
+def downloadrfc(rfcdown,cienthost,clientport):
+	s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+	clientip=cienthost+".local"
+	clport=int(clientport)
+	s.connect((clientip,clport))
+	msg2send="GET RFC %s P2P-CI/1.0\nHost: %s\nOS: %s" %(rfcdown,socket.gethostname(),platform.platform())
+	newrfcrecv="rfc"+rfcdown+".txt"
+	filesave=open(newrfcrecv,'wb')
+	s.send(msg2send)
+	filerecv=s.recv(1024)
+	print filerecv
+	while(filerecv):
+			filesave.write(filerecv)
+			filerecv=s.recv(1024)
+			print filerecv
+	filesave.close()
+	print "File recieve completed"
+	s.close()
+	return True
