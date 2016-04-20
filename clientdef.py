@@ -5,7 +5,8 @@ import os
 import glob
 import re
 import platform
-
+import fcntl
+import struct
 
 def getrfc():
 	currentdir=os.getcwd()
@@ -47,7 +48,7 @@ def lookuptitle(rfcno):
 
 def downloadrfc(rfcdown,cienthost,clientport):
 	s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-	clientip=cienthost+".local"
+	clientip=cienthost
 	clport=int(clientport)
 	s.connect((clientip,clport))
 	msg2send="GET RFC %s P2P-CI/1.0\nHost: %s\nOS: %s" %(rfcdown,socket.gethostname(),platform.platform())
@@ -64,3 +65,7 @@ def downloadrfc(rfcdown,cienthost,clientport):
 	print "File recieve completed"
 	s.close()
 	return True
+
+def get_ip_address(ifname):
+	 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	 return socket.inet_ntoa(fcntl.ioctl(s.fileno(),0x8915,struct.pack('256s', ifname[:15]))[20:24])

@@ -5,7 +5,7 @@ import os
 import glob
 import threading
 from clientdef import *
-
+import fcntl
 
 
 class clientuploadmulti(threading.Thread):
@@ -29,7 +29,7 @@ class clientuploadmulti(threading.Thread):
 					print recv
 					recv=recv.splitlines()
 					rfcnorequired=recv[0].split()[2]
-					print rfcnorequired
+				
 					filename="rfc"+rfcnorequired+".txt"
 					try:
 						f=open(filename,'rb')
@@ -104,6 +104,7 @@ class serverthread():
 			print msg2send
 			self.s.send(msg2send)
 			print self.s.recv(1024)
+			presentrfc.append("RFC"+rfcno)
 
 		if(choice=='2'):
 			rfc=raw_input("Enter RFC to lookup in form RFCnumber")
@@ -118,8 +119,10 @@ class serverthread():
 				print "RFC available hurray"
 				hostrfcavail=msgrecv[1].split()[-2]   #To Add- Check for condition when rfc is available at multiple peers
 				portrfcavail=msgrecv[1].split()[-1]
-				print hostrfcavail
-				print portrfcavail
+				for item in presentrfc:
+						if item==("RFC"+rfcno):
+							print "RFC is already available at the host"
+							return
 				downstatus=downloadrfc(msgrecv[1].split()[1],hostrfcavail,portrfcavail) 
 				if downstatus:
 						title=lookuptitle(msgrecv[1].split()[1])
@@ -149,11 +152,11 @@ class serverthread():
 
 os.system('fuser -k 59994/tcp')
 clientname=socket.gethostname()
-#clientport=random.randint(49152,65535)
-clientport=59994
+clientport=random.randint(49152,65535)
+#clientport=59994
 clientupload=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 clientupload.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-clientupload.bind(('',59994))
+clientupload.bind(('',clientport))
 clientupload.listen(10)
 clientupload.settimeout(5)
 clientthread=clientuploadthread(clientupload,clientname,clientport)
@@ -162,11 +165,7 @@ clientthread.start()
 c=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
 
-#serverip=raw_input("Enter IP: ")
-#serverip='3255-a.local'
-
-
-serverip='3255-a.local'
+serverip=raw_input("Enter IP: ")
 serverport=7734
 c.connect((serverip,serverport))
 msg2send="Host: %s\nPort: %s" %(clientname,clientport)
