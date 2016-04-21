@@ -4,6 +4,7 @@ import sys
 import os
 import glob
 import threading
+import datetime
 from clientdef import *
 import fcntl
 
@@ -28,18 +29,39 @@ class clientuploadmulti(threading.Thread):
 
 					print recv
 					recv=recv.splitlines()
-					rfcnorequired=recv[0].split()[2]
-				
-					filename="rfc"+rfcnorequired+".txt"
-					try:
+					if(recv[0].split()[0]=='GET' and recv[0].split()[3]=="P2P-CI/1.0"):
+
+					  rfcnorequired=recv[0].split()[2]
+					  t = datetime.datetime.now()
+					  filename="rfc"+rfcnorequired+".txt"
+					  try:
 						f=open(filename,'rb')
+						statbuf = os.stat(filename)
+						msg2send="P2P-CI/1.0 200 OK\nDate: %s, %s %s %s %s\nOS: %s\nLast-Modified: %s\nContent-length: %s\nContent-Type: text/text\n" %(t.strftime("%a"),t.strftime("%d"),t.strftime("%b"),t.strftime("%Y"),t.strftime("%H:%M:%S"),platform.platform(),statbuf.st_mtime,statbuf.st_size)
+
+						self.conn.send(msg2send)
 						bufferread=f.read(1024)
 						while(bufferread):
 								self.conn.send(bufferread)
 								bufferread=f.read(1024)
 						self.conn.shutdown(socket.SHUT_WR)
-					except IOError: 
-						print "File not found"
+					  except IOError:
+						t = datetime.datetime.now()
+					   	msg2send1 = "P2P-CI/1.0 400 Bad Request\nDate: %s, %s %s %s %s\nOS: %s" % (t.strftime("%a"),t.strftime("%d"),t.strftime("%b"),t.strftime("%Y"),t.strftime("%H:%M:%S"),platform.platform())
+					   	print "File not found"
+						self.conn.send(msg2send1)
+						self.conn.shutdown(socket.SHUT_WR)
+					elif(recv[0].split()[0]=='GET'):
+						t = datetime.datetime.now()
+						msg2send1 = "P2P-CI/1.0 400 Bad Request\nDate: %s, %s %s %s %s\nOS: %s" % (t.strftime("%a"),t.strftime("%d"),t.strftime("%b"),t.strftime("%Y"),t.strftime("%H:%M:%S"),platform.platform())
+						self.conn.send(msg2send1)
+						self.conn.shutdown(socket.SHUT_WR)
+					else:
+						t = datetime.datetime.now()
+						msg2send1 = "P2P-CI/1.0 505 Bad Request\nDate: %s, %s %s %s %s\nOS: %s" % (t.strftime("%a"),t.strftime("%d"),t.strftime("%b"),t.strftime("%Y"),t.strftime("%H:%M:%S"),platform.platform())
+						self.conn.send(msg2send1)
+						self.conn.shutdown(socket.SHUT_WR)
+							
 				except socket.timeout:
 					continue
 

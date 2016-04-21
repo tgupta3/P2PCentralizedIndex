@@ -19,7 +19,7 @@ class peerlist():
 		print "Adding Peer"
 		for i in activepeers:
 				if(i.host==host and i.port==port):
-					print "Peer Already Exist"
+					#print "Peer Already Exist"
 					return
 				
 		print "Peer Added"					
@@ -95,7 +95,7 @@ class threadclient(threading.Thread):
 		while True:
 				recv=self.connsocket.recv(1024)
 				if not recv: break
-				#print recv
+				print recv
 				lines=recv.splitlines()
 
 				
@@ -162,6 +162,7 @@ def listmsg():
 		msgnxtline="RFC %s %s %s %s"%(r.rfcno,r.title,r.host,r.port)
 		msg2send+=msgnxtline
 	#print len(msg2send.splitlines())
+	
 	return msg2send	
 
 def lookupmsg(indexrfc):

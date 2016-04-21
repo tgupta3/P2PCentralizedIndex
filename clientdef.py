@@ -56,13 +56,22 @@ def downloadrfc(rfcdown,cienthost,clientport):
 	filesave=open(newrfcrecv,'wb')
 	s.send(msg2send)
 	filerecv=s.recv(1024)
+
 	print filerecv
+	check=filerecv.splitlines()
+	if(check[0].split()[1]!='200'):
+		print "Error in request method, protocol"
+		return False
 	while(filerecv):
 			filesave.write(filerecv)
 			filerecv=s.recv(1024)
 			print filerecv
 	filesave.close()
 	print "File recieve completed"
+	with open(newrfcrecv, 'r') as fin:
+		data = fin.read().splitlines(True)
+	with open(newrfcrecv, 'w') as fout:
+		fout.writelines(data[6:])
 	s.close()
 	return True
 
